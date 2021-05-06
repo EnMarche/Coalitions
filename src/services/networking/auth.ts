@@ -7,7 +7,7 @@ export const ACCESS_TOKEN_KEY = 'access_token';
 export const REFRESH_TOKEN_KEY = 'refresh_token';
 
 const oauthBaseUrl = `${process.env.REACT_APP_OAUTH_URL}/oauth/v2/auth`;
-const oauthClientId = process.env.REACT_APP_OAUTH_CLIENT_ID;
+export const oauthClientId = process.env.REACT_APP_OAUTH_CLIENT_ID;
 export const oauthUrl = `${oauthBaseUrl}?response_type=code&client_id=${oauthClientId}&scope=read:profile+write:profile`;
 export const OAUTH_SOURCE = 'coalitions';
 

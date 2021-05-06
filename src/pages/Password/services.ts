@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useSelector, useDispatch } from 'react-redux';
 import { getInCreationCause } from 'redux/Cause/selectors';
-import { setAfterAuthRedirect } from 'redux/Login';
+import { setAfterAuthRedirect, userLoggedIn } from 'redux/Login';
+import { useAfterAuthAction } from 'redux/Login/hooks/useAfterAuthAction';
 import { useTypedAsyncFn } from 'redux/useTypedAsyncFn';
 import { PATHS } from 'routes';
 import HandleErrorService, { APIErrorsType, doesErrorIncludes } from 'services/HandleErrorService';
-import { oauthUrl } from 'services/networking/auth';
+import { oauthClientId, oauthUrl } from 'services/networking/auth';
 import { coalitionApiClient } from 'services/networking/client';
 import { PasswordForm } from './Password';
 
@@ -60,12 +61,12 @@ export const useConfirmPassword = () => {
   const dispatch = useDispatch();
   const errorHandler = useConfirmPasswordErrorHandler();
   const [openCustomSnackbar, setOpenCustomSnackbar] = useState(false);
-  //const [, login] = useLogin();
+  const { performAfterAuthAction } = useAfterAuthAction();
 
   const [{ loading, error }, doConfirmPassword] = useTypedAsyncFn(
     async (payload: ConfirmPasswordPayload) => {
       return await coalitionApiClient.post(
-        `profile/mot-de-passe/${payload.identifier}/${payload.token}`,
+        `profile/mot-de-passe/${payload.identifier}/${payload.token}?client_id=${oauthClientId}&scope=read:profile+write:profile`,
         {
           password: payload.password,
         },
@@ -86,7 +87,9 @@ export const useConfirmPassword = () => {
 
   const confirmPasswordAndLogin = useCallback(
     async (password: string, passwordConfirmation: string, identifier: string, token: string) => {
-      const response = await doConfirmPassword({
+      const response:
+        | string
+        | { access_token: string; refresh_token: string } = await doConfirmPassword({
         password,
         passwordConfirmation,
         identifier,
@@ -94,14 +97,22 @@ export const useConfirmPassword = () => {
       });
       if (response instanceof Error) return;
 
-      //await login(response.code)
-      //dispatch(userLoggedIn({ accessToken: 'accessToken', refreshToken: 'refreshToken' }));
-      if (causeToPublish !== undefined) {
-        dispatch(setAfterAuthRedirect(PATHS.CAUSE_PREVIEW.url()));
+      if (typeof response !== 'string' && response.access_token !== undefined) {
+        dispatch(
+          userLoggedIn({
+            accessToken: response.access_token,
+            refreshToken: response.refresh_token,
+          }),
+        );
+        performAfterAuthAction();
+      } else {
+        if (causeToPublish !== undefined) {
+          dispatch(setAfterAuthRedirect(PATHS.CAUSE_PREVIEW.url()));
+        }
+        window.location.href = oauthUrl;
       }
-      window.location.href = oauthUrl;
     },
-    [causeToPublish, dispatch, doConfirmPassword],
+    [causeToPublish, dispatch, doConfirmPassword, performAfterAuthAction],
   );
 
   return { openCustomSnackbar, loading, error, confirmPasswordAndLogin };
