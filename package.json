@@ -116,7 +116,7 @@
   "devDependencies": {
     "@babel/register": "^7.13.16",
     "@types/cheerio": "0.22.24",
-    "@types/draft-convert": "^2.1.2",
+    "@types/draft-convert": "^2.1.4",
     "@types/enzyme": "3.10.8",
     "@types/history": "4.7.8",
     "@types/jest": "24.9.1",
